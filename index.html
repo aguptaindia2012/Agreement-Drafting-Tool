@@ -120,6 +120,20 @@ table.edit td textarea{min-height:34px}
 .clause .cread p{margin:5px 0}
 .clause .cread ul{margin:5px 0;padding-left:20px}
 .clause .cread li{margin:3px 0}
+
+/* Data & Privacy modal */
+.overlay{position:fixed;inset:0;background:rgba(40,40,40,.55);display:flex;align-items:flex-start;justify-content:center;z-index:90;padding:40px 16px;overflow:auto}
+.overlay.hidden{display:none}
+.modal{background:#fff;border-radius:14px;max-width:720px;width:100%;box-shadow:0 18px 50px rgba(0,0,0,.3);border-top:5px solid var(--green)}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid var(--line)}
+.modal-head h2{margin:0;font-size:19px;color:var(--green)}
+.modal-body{padding:18px 22px 24px}
+.modal-body h3{font-size:14px;margin:18px 0 8px;color:var(--charcoal)}
+.priv-note{background:var(--soft-green);border-left:3px solid var(--green);padding:10px 12px;border-radius:6px;font-size:12.5px;line-height:1.5;margin:0 0 8px}
+.priv-warn{background:var(--cream);border-left:3px solid var(--orange);padding:10px 12px;border-radius:6px;font-size:12.5px;line-height:1.5}
+.inv-row{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;padding:9px 12px;margin-bottom:7px}
+.inv-row .meta{font-size:11px;color:var(--muted)}
+.inv-row h4{margin:0;font-size:13px}
 .clause.off{opacity:.55}
 .switch{position:relative;width:38px;height:22px;flex:0 0 auto}
 .switch input{display:none}
@@ -221,6 +235,7 @@ kbd{background:var(--light-grey);border:1px solid var(--line);border-radius:4px;
   <div class="crumb" id="crumb"></div>
   <div class="spacer"></div>
   <button class="btn orange sm" id="btnInstall" style="display:none">⤓ Install app</button>
+  <button class="btn ghost sm" id="btnPrivacy">🛡 Data &amp; Privacy</button>
   <button class="btn ghost sm" id="btnImport">Open JSON Draft</button>
   <button class="btn grey sm" id="btnHome">Dashboard</button>
 </div>
@@ -229,12 +244,11 @@ kbd{background:var(--light-grey);border:1px solid var(--line);border-radius:4px;
 <div id="view-dashboard" class="wrap">
   <div class="eyebrow">DroCon Bharat Private Limited — Internal Tool</div>
   <h1 class="h-title">Agreement Studio</h1>
-  <p class="lead">Select a template to draft a client or vendor agreement. Every draft is collected through a guided form and exported on-brand in PDF, Word and JSON.</p>
+  <p class="lead">Select a template to draft a client, vendor or HR/consultancy agreement. Every draft is collected through a guided form and exported on-brand in Word, PDF and JSON.</p>
 
-  <div class="callout green">
-    <b>How this works:</b> Pick a template below → fill the inputs → adjust responsibilities, annexures &amp; clauses → preview → download.
-    Templates marked <span class="badge ready">Ready</span> are approved for use. Templates marked
-    <span class="badge pending">Pending review</span> are pre-drafted from your standard terms and await your approval — you can still draft with them and refine the clauses as you go.
+  <div class="callout green" style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap">
+    <div><b>How this works:</b> Pick a template below → fill the inputs → adjust responsibilities, annexures &amp; clauses → preview → download. To change a template's standard wording for all future drafts, use the template editor.</div>
+    <button class="btn blue" id="btnEditTemplates" style="white-space:nowrap">✎ Edit clause templates</button>
   </div>
 
   <div class="section-label">Vendor Contracts (in favour of DroCon Bharat)</div>
@@ -259,6 +273,11 @@ kbd{background:var(--light-grey);border:1px solid var(--line);border-radius:4px;
   <div id="panelHost"></div>
 </div>
 
+<!-- TEMPLATE EDITOR VIEW -->
+<div id="view-tpleditor" class="wrap hidden">
+  <div id="tplHost"></div>
+</div>
+
 <div class="savebar hidden" id="savebar">
   <div class="msg" id="saveMsg">Working draft kept in this browser.</div>
   <button class="btn grey sm" id="btnSaveLocal">Save progress</button>
@@ -267,6 +286,18 @@ kbd{background:var(--light-grey);border:1px solid var(--line);border-radius:4px;
 
 <input type="file" id="fileInput" accept="application/json" class="hidden">
 <input type="file" id="logoInput" accept="image/*" class="hidden">
+<input type="file" id="backupInput" accept=".dcbx,application/json" class="hidden">
+
+<div id="privacyOverlay" class="overlay hidden">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Data &amp; Privacy</h2>
+      <button class="btn grey sm" id="privClose">Close</button>
+    </div>
+    <div class="modal-body" id="privacyBody"></div>
+  </div>
+</div>
+
 
 <!-- libraries (loaded from CDN at runtime in your browser) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -332,7 +363,7 @@ const CLIENT_CLAUSES = [
 <p>This Agreement shall commence on the Effective Date and, unless terminated earlier in accordance with the Termination clause, shall remain in force for the term specified in the engagement details, or until completion of the agreed scope, whichever occurs first. The Agreement may be extended or renewed only by written agreement signed by both Parties.</p>` },
 
   { id:"commercials", title:"Commercials, Invoicing and Payment", on:true, body:`
-<p><b>Service Rates.</b> The Services shall be charged at the rates set out in the engagement details / Spraying Rates Annexure, subject to mutual written modification.</p>
+<p><b>Service Rates.</b> The Services shall be charged at the rates set out in the Spraying Rates Annexure (indicative rate: ₹ {{SERVICE_RATE}} per acre), subject to mutual written modification. The approximate total value of this engagement is estimated at <b>₹ {{CONTRACT_VALUE}}</b>, which is indicative only and is not a guaranteed minimum or maximum.</p>
 <p><b>Invoicing.</b> DroCon Bharat shall raise a Service Invoice for each completed order, detailing the Services rendered and the Gross Revenue. The {{CP}} shall communicate any deficiency in an invoice within the timeframe stated in the engagement details, failing which the invoice shall be deemed accepted.</p>
 <p><b>Collection &amp; Deposit.</b> Where the {{CP}} collects payments from farmers, it shall deposit the full collected amount into DroCon Bharat's designated bank account within one (1) business day of service delivery. Any delay shall attract interest at one percent (1%) per day on the delayed amount from the due date until actual deposit.</p>
 <p><b>Taxes.</b> All amounts are exclusive of GST and other applicable taxes, which shall be borne and remitted by the Party liable under Applicable Law.</p>` },
@@ -964,7 +995,24 @@ const todayISO = ()=> new Date().toISOString().slice(0,10);
 
 function tmpl(key){ return TEMPLATES.find(t=>t.key===key); }
 
-function buildClauseSet(t){
+/* ============================================================
+   TEMPLATE OVERRIDES (client-side "edit the template" — item 4.5)
+   Saved per template key in localStorage. New drafts of that
+   template start from the override; existing saved drafts keep
+   their own copy until reset.
+   ============================================================ */
+const OV_KEY = "dcb_tmpl_overrides";
+function loadOverrides(){ try{ return JSON.parse(localStorage.getItem(OV_KEY)||"{}"); }catch(e){ return {}; } }
+function getOverride(key){ const o=loadOverrides(); return o[key]||null; }
+function hasOverride(key){ return !!getOverride(key); }
+function saveOverrideClauses(key, clauses){
+  const o=loadOverrides();
+  o[key]={ clauses:clauses.map(c=>({id:c.id,title:c.title,body:c.body,on:c.on!==false,custom:!!c.custom})), updatedAt:new Date().toISOString() };
+  try{ localStorage.setItem(OV_KEY, JSON.stringify(o)); return true; }catch(e){ return false; }
+}
+function clearOverride(key){ const o=loadOverrides(); delete o[key]; try{ localStorage.setItem(OV_KEY, JSON.stringify(o)); }catch(e){} }
+
+function baseClauseSet(t){
   const base = CLAUSE_SETS[t.clauseSet] || (t.clauseSet==="vendor" ? VENDOR_CLAUSES : CLIENT_CLAUSES);
   let list = base.map(c=>({ id:c.id, title:c.title.replace(/\{\{CP\}\}/g,t.cpRole), body:c.body.replace(/\{\{CP\}\}/g,t.cpRole), on:c.on, custom:false }));
   if(t.ops && t.clauseSet==="client"){
@@ -975,6 +1023,13 @@ function buildClauseSet(t){
     });
   }
   return list;
+}
+function buildClauseSet(t){
+  const ov=getOverride(t.key);
+  if(ov && ov.clauses && ov.clauses.length){
+    return ov.clauses.map(c=>({ id:c.id, title:c.title, body:c.body, on:c.on!==false, custom:!!c.custom }));
+  }
+  return baseClauseSet(t);
 }
 
 function newDraft(key){
@@ -1027,6 +1082,154 @@ function saveLocal(silent){
 function loadLocal(key){
   try{ const raw = localStorage.getItem(lsKey(key)); return raw?JSON.parse(raw):null; }catch(e){ return null; }
 }
+
+/* ============================================================
+   DATA SAFETY & SECURITY (client-side, device-local)
+   - AES-256-GCM encrypted backups (password-derived key, PBKDF2)
+   - Data inventory + secure delete / wipe
+   ============================================================ */
+const LS_PREFIX = "dcb_draft_";
+function _b64(bytes){ let s=""; const b=new Uint8Array(bytes); for(let i=0;i<b.length;i++) s+=String.fromCharCode(b[i]); return btoa(s); }
+function _ub64(str){ const bin=atob(str); const b=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) b[i]=bin.charCodeAt(i); return b; }
+async function _deriveKey(pass, salt){
+  const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({ name:"PBKDF2", salt, iterations:200000, hash:"SHA-256" },
+    km, { name:"AES-GCM", length:256 }, false, ["encrypt","decrypt"]);
+}
+async function encryptObj(obj, pass){
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv   = crypto.getRandomValues(new Uint8Array(12));
+  const key  = await _deriveKey(pass, salt);
+  const ct   = await crypto.subtle.encrypt({ name:"AES-GCM", iv }, key, new TextEncoder().encode(JSON.stringify(obj)));
+  return { app:"DroCon Bharat Agreement Studio", type:"dcbx-backup", v:1,
+    alg:"AES-256-GCM", kdf:"PBKDF2-SHA256", iter:200000,
+    salt:_b64(salt), iv:_b64(iv), ct:_b64(ct), createdAt:new Date().toISOString() };
+}
+async function decryptObj(pkg, pass){
+  const key = await _deriveKey(pass, _ub64(pkg.salt));
+  const pt  = await crypto.subtle.decrypt({ name:"AES-GCM", iv:_ub64(pkg.iv) }, key, _ub64(pkg.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+
+/* List every saved draft with a few human-readable details (no values leave the device). */
+function dataInventory(){
+  const out=[];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(!k || k.indexOf(LS_PREFIX)!==0) continue;
+    let d=null; try{ d=JSON.parse(localStorage.getItem(k)); }catch(e){}
+    if(!d) continue;
+    const t=(typeof tmpl==="function")?tmpl(d.templateKey):null;
+    out.push({
+      lsKey:k,
+      templateKey:d.templateKey,
+      label:(t&&t.label)||d.templateKey||"Draft",
+      party:(d.fields&&(d.fields.cpName))||"(no counterparty yet)",
+      savedAt:d.savedAt||""
+    });
+  }
+  out.sort((a,b)=> (b.savedAt||"").localeCompare(a.savedAt||""));
+  return out;
+}
+function secureDeleteKey(lsKeyName){
+  try{
+    // overwrite before removal to reduce residual recovery, then delete
+    const len=(localStorage.getItem(lsKeyName)||"").length;
+    if(len) localStorage.setItem(lsKeyName, "0".repeat(len));
+    localStorage.removeItem(lsKeyName);
+    return true;
+  }catch(e){ return false; }
+}
+function wipeAllDrafts(){
+  const keys=[];
+  for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.indexOf(LS_PREFIX)===0) keys.push(k); }
+  keys.forEach(secureDeleteKey);
+  return keys.length;
+}
+function collectAllDrafts(){
+  const drafts={};
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i); if(!k||k.indexOf(LS_PREFIX)!==0) continue;
+    try{ drafts[k]=JSON.parse(localStorage.getItem(k)); }catch(e){}
+  }
+  return drafts;
+}
+
+function openPrivacy(){ const o=$("privacyOverlay"); if(o){ o.classList.remove("hidden"); renderPrivacy(); } }
+function closePrivacy(){ const o=$("privacyOverlay"); if(o) o.classList.add("hidden"); }
+function renderPrivacy(){
+  const body=$("privacyBody"); if(!body) return;
+  const inv=dataInventory();
+  const cryptoOk = (typeof crypto!=="undefined" && crypto.subtle);
+  let rows = inv.length ? inv.map(it=>`
+    <div class="inv-row">
+      <div><h4>${esc(it.label)}</h4><div class="meta">${esc(it.party)}${it.savedAt?" · saved "+new Date(it.savedAt).toLocaleString():""}</div></div>
+      <button class="btn grey sm" data-delkey="${esc(it.lsKey)}" style="color:#b33;border-color:#e4b4b4">Delete</button>
+    </div>`).join("") : '<p class="small-note">No saved drafts on this device.</p>';
+  body.innerHTML = `
+    <div class="priv-note"><b>Where your data lives.</b> Drafts are stored only in this browser, on this device — they are <b>not</b> sent to any server. They contain personal data of agreement parties (names, addresses, phone, email), so please delete drafts you no longer need and keep backups protected.</div>
+    ${!cryptoOk?'<div class="priv-warn">Encryption needs a secure context (https:// or an installed app). On a plain file:// open, encrypted backup is unavailable.</div>':''}
+
+    <h3>Encrypted backup</h3>
+    <p class="small-note" style="margin:0 0 8px">Save all drafts as a single <b>password-protected</b> file (AES-256). Use this to move drafts between devices or to store them safely on your attached storage. The password is never stored — if it is lost, the backup cannot be opened.</p>
+    <div class="toolbar-row">
+      <button class="btn blue sm" id="privBackup" ${cryptoOk?'':'disabled'}>⬇ Export encrypted backup (.dcbx)</button>
+      <button class="btn sm" id="privRestore" ${cryptoOk?'':'disabled'}>⬆ Restore from backup</button>
+    </div>
+
+    <h3>Saved drafts on this device (${inv.length})</h3>
+    ${rows}
+
+    <h3 style="color:#b33">Danger zone</h3>
+    <div class="priv-warn">Permanently delete <b>all</b> drafts from this device. This cannot be undone. Export a backup first if you may need them.</div>
+    <div class="toolbar-row" style="margin-top:8px"><button class="btn grey sm" id="privWipe" style="color:#b33;border-color:#e4b4b4">Delete ALL local data</button></div>
+  `;
+  // wire row deletes
+  body.querySelectorAll("[data-delkey]").forEach(b=>b.addEventListener("click",()=>{
+    const k=b.getAttribute("data-delkey");
+    if(confirm("Delete this draft from this device? This cannot be undone.")){ secureDeleteKey(k); renderPrivacy(); renderDashboard&&renderDashboard(); }
+  }));
+  const bk=$("privBackup"); if(bk) bk.addEventListener("click",doEncryptedBackup);
+  const rs=$("privRestore"); if(rs) rs.addEventListener("click",()=>$("backupInput").click());
+  const wp=$("privWipe"); if(wp) wp.addEventListener("click",()=>{
+    if(!confirm("Delete ALL drafts from this device?")) return;
+    if(!confirm("Are you absolutely sure? This permanently erases every saved draft on this device.")) return;
+    const n=wipeAllDrafts(); alert(n+" draft(s) deleted."); renderPrivacy(); if(typeof goDashboard==="function") goDashboard();
+  });
+}
+async function doEncryptedBackup(){
+  const drafts=collectAllDrafts();
+  if(!Object.keys(drafts).length){ alert("There are no saved drafts to back up."); return; }
+  const p1=prompt("Set a password for this encrypted backup:\n(Keep it safe — it cannot be recovered.)");
+  if(!p1) return;
+  const p2=prompt("Re-enter the password to confirm:");
+  if(p1!==p2){ alert("Passwords do not match. Backup cancelled."); return; }
+  try{
+    const pkg=await encryptObj({ drafts, overrides:loadOverrides(), exportedAt:new Date().toISOString() }, p1);
+    const blob=new Blob([JSON.stringify(pkg,null,2)],{type:"application/octet-stream"});
+    const name="DroCon Bharat_Backup_"+fmtDate(new Date().toISOString().slice(0,10)).replace(/[^\w]+/g,"-")+".dcbx";
+    saveBlob(blob,name);
+  }catch(e){ alert("Could not create backup: "+e.message); }
+}
+async function doRestoreBackup(file){
+  let pkg=null;
+  try{ pkg=JSON.parse(await file.text()); }catch(e){ alert("That file is not a valid backup."); return; }
+  if(!pkg || pkg.type!=="dcbx-backup"){ alert("That file is not a DroCon encrypted backup (.dcbx)."); return; }
+  const pass=prompt("Enter the backup password:");
+  if(!pass) return;
+  let data=null;
+  try{ data=await decryptObj(pkg, pass); }catch(e){ alert("Wrong password, or the backup is corrupted."); return; }
+  const drafts=(data&&data.drafts)||{};
+  const n=Object.keys(drafts).length;
+  if(!n){ alert("The backup contained no drafts."); return; }
+  if(!confirm("Restore "+n+" draft(s) into this browser? Drafts with the same template will be overwritten.")) return;
+  let ok=0;
+  for(const k in drafts){ try{ localStorage.setItem(k, JSON.stringify(drafts[k])); ok++; }catch(e){} }
+  if(data.overrides && typeof data.overrides==="object"){
+    try{ localStorage.setItem(OV_KEY, JSON.stringify(data.overrides)); }catch(e){}
+  }
+  alert(ok+" draft(s) restored"+(data.overrides?" (plus template customisations)":"")+"."); renderPrivacy(); if(typeof goDashboard==="function") goDashboard();
+}
 function flash(msg){ const m=$("saveMsg"); if(m){ m.innerHTML='<span class="ok">✓</span> '+esc(msg); setTimeout(()=>{ if(m) m.textContent="Working draft kept in this browser."; },2600);} }
 
 /* token substitution at render/export time */
@@ -1037,6 +1240,8 @@ function subTokens(text){
     .replace(/\{\{CONF_YEARS\}\}/g, esc(f.confYears||"5"))
     .replace(/\{\{ORDER_ACRES\}\}/g, esc(f.orderAcres||"___"))
     .replace(/\{\{DEPOSIT\}\}/g, esc(f.deposit||"___"))
+    .replace(/\{\{SERVICE_RATE\}\}/g, esc(f.serviceRate||"____"))
+    .replace(/\{\{CONTRACT_VALUE\}\}/g, esc(f.contractValue||"____"))
     .replace(/\{\{ROLE\}\}/g, esc(f.roleTitle||"________________"))
     .replace(/\{\{COMP\}\}/g, esc(f.compensation||"[Compensation details to be inserted]"))
     .replace(/\{\{STARTTEXT\}\}/g, esc(f.startDateText|| (f.startDate?fmtDate(f.startDate):"________________") ))
@@ -1076,6 +1281,7 @@ let activePanel = "parties";
 function showView(v){
   $("view-dashboard").classList.toggle("hidden", v!=="dashboard");
   $("view-editor").classList.toggle("hidden", v!=="editor");
+  const te=$("view-tpleditor"); if(te) te.classList.toggle("hidden", v!=="tpleditor");
   $("savebar").classList.toggle("hidden", v!=="editor");
 }
 
@@ -1387,7 +1593,7 @@ function panelClauses(){
   const isLetterJd = (draft.kind==="letter"||draft.kind==="jd");
   const word = isLetterJd ? "section" : "clause";
   let h=`<div class="panel"><h2>Review ${isLetterJd?"Sections":"Clauses"}</h2>
-    <p class="sub">Click a ${word} to expand and read it. Use <b>Edit</b> to change the wording. Toggle off any ${word} you don't want. Tokens like <kbd>{{CITY}}</kbd>, <kbd>{{CONF_YEARS}}</kbd>${draft.ops&&draft.cat==='client'?', <kbd>{{ORDER_ACRES}}</kbd>, <kbd>{{DEPOSIT}}</kbd>':''} auto-fill at preview time.${(draft.kind||"agreement")==="agreement"?' <span class="small-note">Clauses marked <span class="tag" style="background:var(--blue)">Legal</span> print in the fine-print Standard Legal Terms annexure.</span>':''}</p>
+    <p class="sub">Click a ${word} to expand and read it. Use <b>Edit</b> to change the wording. Toggle off any ${word} you don't want. Tokens like <kbd>{{CITY}}</kbd>, <kbd>{{CONF_YEARS}}</kbd>${draft.ops&&draft.cat==='client'?', <kbd>{{ORDER_ACRES}}</kbd>, <kbd>{{DEPOSIT}}</kbd>, <kbd>{{SERVICE_RATE}}</kbd>, <kbd>{{CONTRACT_VALUE}}</kbd>':''} auto-fill at preview time.${(draft.kind||"agreement")==="agreement"?' <span class="small-note">Clauses marked <span class="tag" style="background:var(--blue)">Legal</span> print in the fine-print Standard Legal Terms annexure.</span>':''}</p>
     <div class="toolbar-row"><button class="btn grey sm" id="expandAll">Expand all</button><button class="btn grey sm" id="collapseAll">Collapse all</button></div>`;
   draft.clauses.forEach((c,i)=>{
     const legalTag = (draft.kind||"agreement")==="agreement" && isLegal(c.id) ? ' <span class="tag" style="background:var(--blue)">Legal</span>' : '';
@@ -1565,7 +1771,7 @@ function renderDashboard(){
     const verb = (t.kind==="letter"||t.kind==="jd") ? "Draft document" : (t.kind==="workorder"?"Draft work order":"Draft agreement");
     card.innerHTML=`
       <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px">
-        ${catTag(t.cat)}
+        ${catTag(t.cat)}${hasOverride(t.key)?'<span class="tag" style="background:var(--green)">Customised</span>':''}
       </div>
       <h3>${esc(t.label)}</h3>
       <p>${esc(t.desc)}</p>
@@ -1578,6 +1784,150 @@ function renderDashboard(){
 }
 
 function goDashboard(){ showView("dashboard"); $("crumb").innerHTML=""; renderDashboard(); window.scrollTo(0,0); }
+
+/* ============================================================
+   TEMPLATE EDITOR — edit a template's standard clauses (item 4.5)
+   ============================================================ */
+let tplKey=null, tplClauses=[];
+function openTemplateEditor(key){
+  tplKey = key || (TEMPLATES[0] && TEMPLATES[0].key);
+  tplClauses = buildClauseSet(tmpl(tplKey)).map(c=>({...c}));
+  showView("tpleditor"); $("crumb").innerHTML=""; renderTplEditor(); window.scrollTo(0,0);
+}
+function trtBlock(key, html, label){
+  return `<label style="font-size:12px;font-weight:700;display:block;margin:12px 0 4px">${esc(label)}</label>
+  <div class="trt-toolbar rt-toolbar">
+    <button type="button" data-tcmd="bold" data-tt="${key}" title="Bold"><b>B</b></button>
+    <button type="button" data-tcmd="italic" data-tt="${key}" title="Italic"><i>I</i></button>
+    <button type="button" data-tcmd="insertUnorderedList" data-tt="${key}" title="Bullet list">•</button>
+    <button type="button" data-tcmd="insertParagraph2" data-tt="${key}" title="New paragraph">¶</button>
+  </div>
+  <div class="rt" contenteditable="true" data-trt="${key}">${html||""}</div>`;
+}
+function tplSyncRT(key){
+  const el=document.querySelector(`[data-trt="${key}"]`); if(!el) return;
+  if(key.indexOf("tplclause_")===0){ const i=+key.split("_")[1]; if(tplClauses[i]) tplClauses[i].body=el.innerHTML; }
+}
+function renderTplEditor(){
+  const host=$("tplHost"); if(!host) return;
+  const opts=TEMPLATES.map(x=>`<option value="${x.key}" ${x.key===tplKey?'selected':''}>${esc(x.label)} — ${x.cat==='vendor'?'Vendor':(x.cat==='module'?'HR/Legal':'Client')}</option>`).join("");
+  const overridden=hasOverride(tplKey);
+  let cards="";
+  tplClauses.forEach((c,i)=>{
+    cards+=`<div class="clause ${c.on?'':'off'}">
+      <div class="chead">
+        <label class="switch"><input type="checkbox" data-tpltoggle="${i}" ${c.on?'checked':''}><span></span></label>
+        <span class="ctitle" data-tplread="${i}" style="cursor:pointer">${esc(c.title)}${c.custom?' <span class="tag" style="background:var(--orange)">added</span>':''}</span>
+        <span class="order">
+          <button class="btn grey sm" data-tplreadtoggle="${i}" title="Read">▾</button>
+          <button class="btn grey sm" data-tplmv="up" data-i="${i}" title="Move up">▲</button>
+          <button class="btn grey sm" data-tplmv="down" data-i="${i}" title="Move down">▼</button>
+          <button class="btn grey sm" data-tpledit="${i}">Edit</button>
+          <button class="btn grey sm" data-tpldel="${i}" style="color:#b33;border-color:#e4b4b4">Delete</button>
+        </span>
+      </div>
+      <div class="cread hidden" data-tplcread="${i}">${c.body}</div>
+      <div class="cbody hidden" data-tplcbody="${i}">
+        <label style="font-size:12px;font-weight:700">Clause title</label>
+        <input type="text" data-tpltitle="${i}" value="${esc(c.title)}" style="margin:4px 0 8px">
+        ${trtBlock("tplclause_"+i, c.body, "Clause text")}
+        <div class="toolbar-row"><button class="btn sm" data-tplsave="${i}">Save clause</button></div>
+      </div>
+    </div>`;
+  });
+  host.innerHTML=`
+    <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div class="eyebrow">DroCon Bharat — Template Editor</div>
+      <button class="btn grey sm" id="tplBack">← Back to dashboard</button>
+    </div>
+    <h1 class="h-title" style="margin-bottom:4px">Edit clause templates</h1>
+    <div class="callout">Changes here set the <b>standard clauses for new drafts</b> of the selected template. ${overridden?'<b style="color:var(--green)">This template is customised.</b>':'This template currently uses the built-in defaults.'}<br><span class="small-note">Drafts already in progress keep their own copy until reopened fresh. Saved on this device — move them with an encrypted backup (Data &amp; Privacy).</span></div>
+
+    <div class="fgrid" style="margin:12px 0 4px">
+      <div class="field"><label>Template</label>
+        <select id="tplPick">${opts}</select></div>
+      <div class="field" style="display:flex;align-items:flex-end;gap:8px">
+        <button class="btn blue" id="tplSaveAll">✓ Save to template</button>
+        <button class="btn grey sm" id="tplReset" ${overridden?'':'disabled'}>Reset to default</button>
+      </div>
+    </div>
+
+    <div class="toolbar-row" style="margin:10px 0">
+      <button class="btn grey sm" id="tplExpand">Expand all</button>
+      <button class="btn grey sm" id="tplCollapse">Collapse all</button>
+      <span class="small-note">${tplClauses.length} clause(s)</span>
+    </div>
+
+    ${cards}
+
+    <div class="panel" style="margin-top:16px">
+      <h2 style="font-size:16px">Add a new clause</h2>
+      <input type="text" id="tplNewTitle" placeholder="Clause title (e.g. Special Conditions)" style="margin:4px 0 8px">
+      ${trtBlock("tplnew","","Clause text")}
+      <div class="toolbar-row"><button class="btn sm" id="tplAdd">+ Add clause to template</button></div>
+    </div>
+
+    <div class="toolbar-row" style="margin:18px 0 40px">
+      <button class="btn blue" id="tplSaveAll2">✓ Save to template</button>
+      <button class="btn grey" id="tplBack2">Back to dashboard</button>
+    </div>`;
+  wireTplEditor();
+}
+function wireTplEditor(){
+  $("tplPick").addEventListener("change",e=>openTemplateEditor(e.target.value));
+  document.querySelectorAll("[data-tpltoggle]").forEach(cb=>cb.addEventListener("change",()=>{ tplClauses[+cb.getAttribute("data-tpltoggle")].on=cb.checked; }));
+  function tRead(i){ const el=document.querySelector(`[data-tplcread="${i}"]`); if(el) el.classList.toggle("hidden"); }
+  document.querySelectorAll("[data-tplread]").forEach(b=>b.addEventListener("click",()=>tRead(b.getAttribute("data-tplread"))));
+  document.querySelectorAll("[data-tplreadtoggle]").forEach(b=>b.addEventListener("click",()=>tRead(b.getAttribute("data-tplreadtoggle"))));
+  document.querySelectorAll("[data-tpledit]").forEach(b=>b.addEventListener("click",()=>{ document.querySelector(`[data-tplcbody="${b.getAttribute("data-tpledit")}"]`).classList.toggle("hidden"); }));
+  document.querySelectorAll("[data-tplmv]").forEach(b=>b.addEventListener("click",()=>{
+    const dir=b.getAttribute("data-tplmv"), i=+b.getAttribute("data-i"), j=dir==="up"?i-1:i+1;
+    if(j<0||j>=tplClauses.length) return; const tmp=tplClauses[i]; tplClauses[i]=tplClauses[j]; tplClauses[j]=tmp; renderTplEditor();
+  }));
+  document.querySelectorAll("[data-tplsave]").forEach(b=>b.addEventListener("click",()=>{
+    const i=+b.getAttribute("data-tplsave");
+    const ti=document.querySelector(`[data-tpltitle="${i}"]`); if(ti) tplClauses[i].title=ti.value;
+    tplSyncRT("tplclause_"+i);
+    flashTpl("Clause updated — remember to “Save to template”.");
+  }));
+  document.querySelectorAll("[data-tpldel]").forEach(b=>b.addEventListener("click",()=>{
+    const i=+b.getAttribute("data-tpldel");
+    if(confirm("Remove this clause from the template?")){ tplClauses.splice(i,1); renderTplEditor(); }
+  }));
+  if($("tplExpand")) $("tplExpand").addEventListener("click",()=>document.querySelectorAll("[data-tplcread]").forEach(e=>e.classList.remove("hidden")));
+  if($("tplCollapse")) $("tplCollapse").addEventListener("click",()=>document.querySelectorAll("[data-tplcread]").forEach(e=>e.classList.add("hidden")));
+  document.querySelectorAll(".trt-toolbar button").forEach(b=>{
+    b.addEventListener("mousedown",e=>e.preventDefault());
+    b.addEventListener("click",()=>{
+      const cmd=b.getAttribute("data-tcmd"), tt=b.getAttribute("data-tt");
+      const target=document.querySelector(`[data-trt="${tt}"]`); if(target) target.focus();
+      if(cmd==="insertParagraph2"){ document.execCommand("insertHTML",false,"<p><br></p>"); }
+      else document.execCommand(cmd,false,null);
+      tplSyncRT(tt);
+    });
+  });
+  document.querySelectorAll("[data-trt]").forEach(el=>{
+    el.addEventListener("input",()=>tplSyncRT(el.getAttribute("data-trt")));
+    el.addEventListener("blur",()=>tplSyncRT(el.getAttribute("data-trt")));
+  });
+  if($("tplAdd")) $("tplAdd").addEventListener("click",()=>{
+    const title=($("tplNewTitle").value||"").trim();
+    const body=document.querySelector('[data-trt="tplnew"]').innerHTML;
+    if(!title){ alert("Please enter a clause title."); return; }
+    tplClauses.push({ id:"custom_"+Date.now().toString(36), title, body: body||"<p></p>", on:true, custom:true });
+    renderTplEditor();
+  });
+  const saveFn=()=>{ saveOverrideClauses(tplKey, tplClauses); renderTplEditor(); flashTpl("Saved — new drafts of this template will use these clauses."); };
+  if($("tplSaveAll")) $("tplSaveAll").addEventListener("click",saveFn);
+  if($("tplSaveAll2")) $("tplSaveAll2").addEventListener("click",saveFn);
+  if($("tplReset")) $("tplReset").addEventListener("click",()=>{
+    if(!confirm("Reset this template to the built-in defaults? Your saved changes for this template will be removed.")) return;
+    clearOverride(tplKey); tplClauses=baseClauseSet(tmpl(tplKey)).map(c=>({...c})); renderTplEditor(); flashTpl("Reset to built-in defaults.");
+  });
+  if($("tplBack")) $("tplBack").addEventListener("click",goDashboard);
+  if($("tplBack2")) $("tplBack2").addEventListener("click",goDashboard);
+}
+function flashTpl(msg){ const c=$("crumb"); if(c){ c.innerHTML='<span class="ok">✓</span> '+esc(msg); setTimeout(()=>{ if($("crumb")) $("crumb").innerHTML=""; },2800);} }
 
 /* ============================================================
    DOCUMENT MODEL  (shared by preview / PDF / Word)
@@ -2110,6 +2460,11 @@ $("logoInput").addEventListener("change",e=>{
   const r=new FileReader(); r.onload=()=>{ draft.logo=r.result; saveLocal(true); renderPanel(); }; r.readAsDataURL(file);
   e.target.value="";
 });
+if($("btnPrivacy")) $("btnPrivacy").addEventListener("click",openPrivacy);
+if($("btnEditTemplates")) $("btnEditTemplates").addEventListener("click",()=>openTemplateEditor());
+if($("privClose")) $("privClose").addEventListener("click",closePrivacy);
+if($("privacyOverlay")) $("privacyOverlay").addEventListener("click",e=>{ if(e.target.id==="privacyOverlay") closePrivacy(); });
+if($("backupInput")) $("backupInput").addEventListener("change",e=>{ const f=e.target.files[0]; if(f) doRestoreBackup(f); e.target.value=""; });
 
 goDashboard();
 (function(){ const lg=document.getElementById("appLogo"); if(lg) lg.src=DCB_LOGO; })();

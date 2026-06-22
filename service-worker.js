@@ -1,6 +1,6 @@
 /* DroCon Bharat Agreement Studio — service worker
    Makes the app installable and usable offline. */
-const VERSION = "dcb-studio-v1";
+const VERSION = "dcb-studio-v4";
 const APP_SHELL = [
   "./",
   "./index.html",
